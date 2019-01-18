@@ -1,0 +1,319 @@
+<!DOCTYPE html><html class="theme-next mist use-motion" lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=2"><meta name="theme-color" content="#222"><link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2"><link rel="stylesheet" href="/css/main.css?v=6.7.0"><link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.7.0"><link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.7.0"><link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.7.0"><link rel="mask-icon" href="/images/logo.svg?v=6.7.0" color="#222"><script id="hexo.configurations">var NexT=window.NexT||{},CONFIG={root:"/",scheme:"Mist",version:"6.7.0",sidebar:{position:"left",display:"post",offset:12,b2t:!1,scrollpercent:!1,onmobile:!1},fancybox:!1,fastclick:!1,lazyload:!1,tabs:!0,motion:{enable:!0,async:!1,transition:{post_block:"fadeIn",post_header:"slideDownIn",post_body:"slideDownIn",coll_header:"slideLeftIn",sidebar:"slideUpIn"}},algolia:{applicationID:"",apiKey:"",indexName:"",hits:{per_page:10},labels:{input_placeholder:"Search for Posts",hits_empty:"We didn't find any results for the search: ${query}",hits_stats:"${hits} results found in ${time} ms"}}}</script><meta name="description" content="堆中几乎存放着Java世界中所有的对象实例，垃圾收集器在对堆进行回收前，第一件事情就是要确定这些对象有哪些还活着那些已经死去？"><meta name="keywords" content="JVM"><meta property="og:type" content="article"><meta property="og:title" content="垃圾收集"><meta property="og:url" content="https://litgh.github.io/2019/01/17/垃圾收集/index.html"><meta property="og:site_name" content="Hello, 世界"><meta property="og:description" content="堆中几乎存放着Java世界中所有的对象实例，垃圾收集器在对堆进行回收前，第一件事情就是要确定这些对象有哪些还活着那些已经死去？"><meta property="og:locale" content="zh-CN"><meta property="og:updated_time" content="2019-01-18T05:43:47.506Z"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="垃圾收集"><meta name="twitter:description" content="堆中几乎存放着Java世界中所有的对象实例，垃圾收集器在对堆进行回收前，第一件事情就是要确定这些对象有哪些还活着那些已经死去？"><link rel="canonical" href="https://litgh.github.io/2019/01/17/垃圾收集/"><script id="page.configurations">CONFIG.page={sidebar:""}</script><title>垃圾收集 | Hello, 世界</title><noscript><style>.sidebar-inner,.use-motion .brand,.use-motion .collection-title,.use-motion .comments,.use-motion .menu-item,.use-motion .motion-element,.use-motion .pagination,.use-motion .post-block,.use-motion .post-body,.use-motion .post-header{opacity:initial}.use-motion .logo,.use-motion .site-subtitle,.use-motion .site-title{opacity:initial;top:initial}.use-motion .logo-line-before i{left:initial}.use-motion .logo-line-after i{right:initial}</style></noscript></head><body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN"><div class="container sidebar-position-left page-post-detail"><div class="headband"></div><header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="header-inner"><div class="site-brand-wrapper"><div class="site-meta"><div class="custom-logo-site-title"><a href="/" class="brand" rel="start"><span class="logo-line-before"><i></i></span> <span class="site-title">Hello, 世界</span> <span class="logo-line-after"><i></i></span></a></div></div><div class="site-nav-toggle"><button aria-label="切换导航栏"><span class="btn-bar"></span> <span class="btn-bar"></span> <span class="btn-bar"></span></button></div></div><nav class="site-nav"><ul id="menu" class="menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i><br>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i><br>归档</a></li><li class="menu-item menu-item-search"><a href="javascript:;" class="popup-trigger"><i class="menu-item-icon fa fa-search fa-fw"></i><br>搜索</a></li></ul><div class="site-search"><div class="popup search-popup local-search-popup"><div class="local-search-header clearfix"><span class="search-icon"><i class="fa fa-search"></i> </span><span class="popup-btn-close"><i class="fa fa-times-circle"></i></span><div class="local-search-input-wrapper"><input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input"></div></div><div id="local-search-result"></div></div></div></nav></div></header><main id="main" class="main"><div class="main-inner"><div class="content-wrap"><div id="content" class="content"><div id="posts" class="posts-expand"><article class="post post-type-normal" itemscope itemtype="http://schema.org/Article"><div class="post-block"><link itemprop="mainEntityOfPage" href="https://litgh.github.io/2019/01/17/垃圾收集/"><span hidden itemprop="author" itemscope itemtype="http://schema.org/Person"><meta itemprop="name" content="Lizheng"><meta itemprop="description" content=""><meta itemprop="image" content="/images/avatar.png"></span><span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization"><meta itemprop="name" content="Hello, 世界"></span><header class="post-header"><h2 class="post-title" itemprop="name headline">垃圾收集</h2><div class="post-meta"><span class="post-time"><span class="post-meta-item-icon"><i class="fa fa-calendar-o"></i> </span><span class="post-meta-item-text">发表于</span> <time title="创建时间：2019-01-17 22:55:27" itemprop="dateCreated datePublished" datetime="2019-01-17T22:55:27+08:00">2019-01-17</time> <span class="post-meta-divider">|</span> <span class="post-meta-item-icon"><i class="fa fa-calendar-check-o"></i> </span><span class="post-meta-item-text">更新于</span> <time title="修改时间：2019-01-18 13:43:47" itemprop="dateModified" datetime="2019-01-18T13:43:47+08:00">2019-01-18</time></span><div class="post-symbolscount"><span class="post-meta-item-icon"><i class="fa fa-file-word-o"></i> </span><span class="post-meta-item-text">本文字数：</span> <span title="本文字数">5k</span> <span class="post-meta-divider">|</span> <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i> </span><span class="post-meta-item-text">阅读时长 &asymp;</span> <span title="阅读时长">5 分钟</span></div></div></header><div class="post-body" itemprop="articleBody"><p>堆中几乎存放着Java世界中所有的对象实例，垃圾收集器在对堆进行回收前，第一件事情就是要确定这些对象有哪些还活着那些已经死去？</p><a id="more"></a><h2 id="引用计数法"><a href="#引用计数法" class="headerlink" title="引用计数法"></a>引用计数法</h2><p>给对象中添加一个引用计数器，每当有一个地方引用它时，计数器值就+1，当引用失效时计数器值就-1，任何时刻计数器都为零的对象，就是不可能再被使用的。客观地说， 引用计数算法的实现简单判定效率也很高。在大部分情况下，他都是一个不错的算法，也有一些比较著名的应用案例，例如微软的COM技术等。Java语言中没有选用引用计数算法来管理内存， 其中最主要的原因是它很难解决对象之间的相互循环引用的问题。</p><h2 id="根搜索算法"><a href="#根搜索算法" class="headerlink" title="根搜索算法"></a>根搜索算法</h2><p>在主流的商用语言中， 都是使用根搜索算法（GC Roots Tracing）判定对象是否存活的，从这些节点开始向下搜索， 搜索所通过的路径称为引用链，当一个对象到GC Roots没有任何引用链相连时，则证明此对象是不可用的。<br>在Java语言里可作为GC Roots的对象包括下面几种：</p><ul><li>虚拟机栈（栈帧中的本地变量表）中的引用的对象</li><li>方法区中的类静态属性引用的对象</li><li>方法区中的常量引用的对象</li><li>本地方法栈中JNI的引用的对象</li></ul><h3 id="再谈引用"><a href="#再谈引用" class="headerlink" title="再谈引用"></a>再谈引用</h3><ul><li>强引用（Strong Reference)<br>就是指在程序代码之中普遍存在的类似“Object obj = new Obejct()”这类的引用。</li><li>软引用（Soft Reference)<br>用来描述一些还有用， 但并非必需的对象。 在系统将要发生内存溢出之前，将会把这些对象列进回收范围之中，并进行第二次回收，如果这次回收还是没有足够的内存才会抛出内存溢出异常。</li><li>弱引用（Weak Reference)<br>也是用来描述非必需对象的，但他是强度比软引用更弱。一些被弱引用关联的对象只能生存到下一次垃圾收集发生之前，当垃圾收集器工作时，无论当前内存是否足够都会回收掉被弱引用关联的对象。</li><li>虚引用（Phantom Reference）<br>也成为幽灵引用或者幻影引用，他是最弱的一种引用关系，一个对象是否有虚引用的存在，完全不对其生存时间构成影响，也无法通过虚拟用来获取一个对象的实例，为一个对象设置虚引用关联的唯一目的，就是希望能在这个对象被回收时收到一个系统通知。</li></ul><p>在跟搜索算法中不可达的对象，也并非是非死不可的，这时候，他暂时处于缓刑阶段，要真正宣告一个对象死亡，至少要经历两次标记过程。如果对象在进行根搜索后，发现没有与GC Roots相连接的引用链，他将会被第一次标记，并且进行一次筛选，筛选的条件，是此对象是否有必要执行finalize()方法，当对象没有覆盖finalize()方法或者已经被虚拟机调用过，虚拟机将对这两种情况都视为没有必要执行。<br>如果这个对象被判定为有必要执行finalize()方法，那么这个对象将会被放置在一个名为F-Queue队列之中，并在稍后由一条虚拟机自动创建的低优先级的线程去执行。这里所谓的执行是指虚拟机会触发这个方法，但并不承诺会等待他运行结束。这样做的原因是，如果一个对象在finalize()方法中执行缓慢或者发生了死循环，就很可能会导致F-Queue队列中其他对象永久处于等待状态，甚至导致整个内存回收系统崩溃。finalize()方法是对象逃脱死亡命运的最后一次机会，稍后GC将对F-Queue中的对象进行第二次小规模的标记， 如果对象要在finalize()方法中成功拯救自己—只要重新与引用链上的任何一个对象建立关联即可， 譬如把自己赋值给某个类变量或对象的成员变量上。</p><h2 id="回收方法区"><a href="#回收方法区" class="headerlink" title="回收方法区"></a>回收方法区</h2><p>永久代的垃圾收集主要回收两部分内容：废弃常量和无用的类，回收废弃常量与回收Java堆于中的对象非常相似，假如一个字符串“abc”已经进入了常量池，但是系统中没有任何一个String对象是叫做“abc”的， 如果这时候发生内存回收，而且必要的话这个常量就会被系统进出常量池，常量池中的其他类（接口）、方法、字段的符号引用也与此类似。<br>判定一个常量是否是废弃常量比较简单，而判定一个类是否是无用的类的条件则相对困难许多需要，同时满足下面三个条件，才能算是无用的类。</p><ul><li>所有的实例都已经被回收，也就是Java堆中不存在该类的任何实例。</li><li>加载该类的ClassLoader的已经被回收。</li><li>该类对应的java.lang.Class对象没有在任何地方被引用，无法在任何地方通过反射访问该类的方法。</li></ul><p>虚拟机可以对满足上述三个条件的无用类进行回收，这里说的仅仅是可以而不是和对象一样，不使用了就必然会回收。是否对类进行回，HotSpot收虚拟机提供了-Xnoclassgc参数进行控制。在大量使用反射，动态代理、CGlib等bytecode框架的场景，以及动态生成JSP和OSGi这类频繁自定义ClassLoader的场景，都需要虚拟机具备类卸载的功能，以保证永代带不会溢出。</p><h2 id="垃圾收集算法"><a href="#垃圾收集算法" class="headerlink" title="垃圾收集算法"></a>垃圾收集算法</h2><h3 id="标记-清除算法"><a href="#标记-清除算法" class="headerlink" title="标记-清除算法"></a>标记-清除算法</h3><p>最基础的收集算法是标记清除算法，和他的名字一样，算法分为标记和清除两个阶段，首先标记出所有需要回收的对象，在标记完成后，统一回收掉所有被标记的对象。他是最基础的收集算法，是因为后续的收集算法都是基于这种思路，并对其缺点进行改进而得到的。他的主要缺点有两个：一是效率问题，标记和清除过程的效率都不高，另外一个是空间问题，标记清除之后，会产生大量不连续的内存碎片，空间碎片太多，可能会导致动程序在以后的运行过程中需要分配较大对象时无法找到足够的连续内存而不得不提前触发一次垃圾收集动作。</p><h3 id="复制算法"><a href="#复制算法" class="headerlink" title="复制算法"></a>复制算法</h3><p>为了解决效率问题，一种称为复制的收集算法出现了，他将可用内存容量划分为大小相等的两块，每次只使用其中的一块，当这一块的内存用完了，就将还存活的对象复制到另外一块上面，然后再把已使用过的内存空间一次清理掉。这样，使得每次都是对其中的一块进行内存回收，内存分配时也就不用考虑内存碎片等复杂情况。现在的商业虚拟机都采用这种收集算法来回收新生代。新生代中的对象98%是朝生夕灭的，所以并不需要按照一比一的比例来划分内存空间，而是将内存划为一块较大的Eden空间和两块较小的Survivor空间，每次使用Eden和其中的一块Survivor。当回收时，将还存活的对象一次性的拷贝到另外一块Survivor空间上，最后清理掉Eden和刚才用过的Survivor空间。</p><p>HotSpot虚拟机默认的Eden和Survivor的大小比例是8：1，也就是每次新生代中可用内存空间为整个新生代容量的90%只有10%的内存是被浪费的。我们没有办法保证每次回收都只有不多于10%的对象存活，当空间不够用时需要依赖其他内存进行分配担保。如果没有足够的空间，存放上一次新生代收集下来的存活对象。这些对象将直接通过分配担保机制进入老年代。</p><h3 id="标记-整理算法"><a href="#标记-整理算法" class="headerlink" title="标记-整理算法"></a>标记-整理算法</h3><p>复制收集算法的对象存活率较高时，就要执行较多的复制操作，效率将会变低，关键的是如果不想浪费50%的空间，就需要有额外的空间进行分配担保，以应对被使用的内存中对象都百分之百存活的极端情况，所以在老年代一般不能直接使用这种方法。<br>根据老年代的特点，有人提出了另外一种标记整理，算法标记过程仍然与标记清除算法一样，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都像一端移动，然后直接清理掉边界以外的内存。</p><h2 id="垃圾收集器"><a href="#垃圾收集器" class="headerlink" title="垃圾收集器"></a>垃圾收集器</h2><h3 id="Serial收集器"><a href="#Serial收集器" class="headerlink" title="Serial收集器"></a>Serial收集器</h3><p>是个单线程的收集器，他在垃圾收集时必须暂停其他所有工作线程，直到它收集结束 “Stop The World”</p><h3 id="ParNew收集器"><a href="#ParNew收集器" class="headerlink" title="ParNew收集器"></a>ParNew收集器</h3><p>其实就是Serial收集器的多线程版本，除了使用多条线程进行垃圾收集之外，其余行为包括Serial收集器可用的所有控制参数、收集算法、Stop The World、对象分配规则、回收策略等都与Serial收集器完全一样。<br>他是许多运行在Server模式下的虚拟机中首选的新生代收集器，其中有一个与性能无关，但很重要的原因是除了Serial收集器外，只有他能与CMS收集器配合工作。<br>ParNew收集器在单CPU的环境中绝对不会有比Serial收集器更好的效果。</p><pre><code>并发（Parallel）：指多条垃圾收集线程并行工作，但此时用户线程仍然处于等待状态
+并行（Concurrent）：指用户线程与垃圾收集线程同时执行（但不一定是并行的，可能会交替执行）， 用户程序继续运行，而垃圾收集程序运行于另一个CPU上。
+</code></pre><h3 id="Parallel-Scavenge收集器"><a href="#Parallel-Scavenge收集器" class="headerlink" title="Parallel Scavenge收集器"></a>Parallel Scavenge收集器</h3><p>也是一个新生代收集器，它也是使用复制算法的收集器。他的目标是达到一个可控制的吞吐量，所谓吞吐量，就是CPU用于运行用户代码的时间与CPU总消耗时间的比值，即吞吐量 = 运行用户代码时间 / (运行用户代码时间 + 垃圾收集时间)</p><h3 id="Serial-Old收集器"><a href="#Serial-Old收集器" class="headerlink" title="Serial Old收集器"></a>Serial Old收集器</h3><p>Serial收集器的老年代版本，他同样是一个单线程收集器，使用标记-整理算法</p><h3 id="Paralel-Old收集器"><a href="#Paralel-Old收集器" class="headerlink" title="Paralel Old收集器"></a>Paralel Old收集器</h3><p>是Parallel Scavenge收集器的老年代版本，使用多线程和标记-整理算法。</p><h3 id="CMS收集器"><a href="#CMS收集器" class="headerlink" title="CMS收集器"></a>CMS收集器</h3><p>是一种以获取最短回收停顿时间为目标的收集器，目前很大一部分的Java应用都集中在互联网的服务端上，这类应用尤其重视服务的响应速度，希望系统停顿时间最短，以给用户带来较好的体验。它基于标记-清除算法实现。<br>运作过程：</p><ul><li>初始标记</li><li>并发标记</li><li>重新标记</li><li>迸发清除</li></ul><p>其中初始标记，重新标记这两个步骤仍然需要Stop The Wrold。<br>初始标记，仅仅只是标记一下能直接GC Roots能关联到的对象，速度很快。并发标记阶段就是进行GC Roots Tracing的过程，而重新标记阶段是为了修正并发标记期间应用程序继续运行而导致标记产生变动的那一部分对象的标记记录。这个阶段的停顿时间一般会比初始标记阶段稍长一些，但远比并发标记的时间短。</p><p>缺点：</p><ol><li>对CPU资源非常敏感，它虽然不会导致用户线程停顿，但是会因为占用了一部分线程资源而导致应用程序变慢，总吞吐量会降低。默认启动的回收线程是（CPU数量+3）/ 4， 当CPU在4个以上时最多占用不超过25%的的CPU资源。但是当CPU不足4个时，需要分出一半的运算能力去执行收集器线程。</li><li>无法处理浮动垃圾。由于并发清理阶段，用户线程还在运行，伴随程序的运行，自然还会有新的垃圾不断产生。这一部分垃圾出现在标记过程之后，CMS无法在本次收集中处理掉他们，只好留到下一次GC时再将其清理掉，这一部分垃圾就称为浮动垃圾。要是CMS运行期间预留的内存无法满足程序需要， 就会出现一次“Concurrent Mode Failure”失败，这时间虚拟机将启动后备预案：临时启用Serial Old收集器来重新进行老年代的垃圾收集， 这样停顿的时间就会很长了。</li><li>它是基于标记-清除算法实现的，空间碎片过多时会给大对象的分配带来很大麻烦，往往会出现老年代还有很大空间剩余，但无法找到足够大的连续空间来分配当前对象， 不得不提前触发一次Full GC。为了解决这个总是， CMS收集器提供了一个-XX:+UseCMSCompactAtFullCollection开关参数，用于在Full GC后额外附送一次碎片整理过程，内存整理过程是无法并发的。</li></ol><h3 id="G1收集器"><a href="#G1收集器" class="headerlink" title="G1收集器"></a>G1收集器</h3><p>基于标记整理算法实现。它可以非常精确的控制停顿。他将整个Java堆 划分为多个大小固定的独立区域，并且跟踪这些区域里面的垃圾堆积程度，在后台维护一个优先列表。每次根据允许的收集时间优先回收垃圾最多的区域。</p><h2 id="内存分配与回收策略"><a href="#内存分配与回收策略" class="headerlink" title="内存分配与回收策略"></a>内存分配与回收策略</h2><ul><li>对象优先在Eden分配</li><li>大对象直接进入老年代<br>虚拟机提供了一个-XX:PretenureSizeThreshold参数，大于这个值的对象直接进入老年代</li><li>长期存活的对象进入老年代<br>对象在Survivor区每经过一次Minor GC，年龄就增加1岁，当增加到一定程度（默认15岁）就会晋升到老年代中。年龄阈值可以通过参数 -XX:MaxTenuringThreshold来设置</li><li>动态对象年龄判定<br>为了更好适应不同程序内存情况， 虚拟机并不总是要求对象年龄必需达到MaxTenuringThreshold才能晋升老年代，如果在Survivor空间中相同年龄所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代。</li><li>空间分配担保<br>在发生Minor GC时，虚拟机会检测之前每次晋升到老年代的平均大小是否大于老年代的剩余空间大小，如果大于则改为直接进行一次Full GC。</li></ul></div><footer class="post-footer"><div class="post-tags"><a href="/tags/JVM/" rel="tag"># JVM</a></div><div class="post-nav"><div class="post-nav-next post-nav-item"><a href="/2015/08/17/内存溢出与内存泄漏/" rel="next" title="内存泄漏与内存溢出"><i class="fa fa-chevron-left"></i> 内存泄漏与内存溢出</a></div><span class="post-nav-divider"></span><div class="post-nav-prev post-nav-item"></div></div></footer></div></article></div></div></div><div class="sidebar-toggle"><div class="sidebar-toggle-line-wrap"><span class="sidebar-toggle-line sidebar-toggle-line-first"></span> <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span> <span class="sidebar-toggle-line sidebar-toggle-line-last"></span></div></div><aside id="sidebar" class="sidebar"><div class="sidebar-inner"><ul class="sidebar-nav motion-element"><li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">文章目录</li><li class="sidebar-nav-overview" data-target="site-overview-wrap">站点概览</li></ul><div class="site-overview-wrap sidebar-panel"><div class="site-overview"><div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person"><img class="site-author-image" itemprop="image" src="/images/avatar.png" alt="Lizheng"><p class="site-author-name" itemprop="name">Lizheng</p><p class="site-description motion-element" itemprop="description"></p></div><nav class="site-state motion-element"><div class="site-state-item site-state-posts"><a href="/archives/"><span class="site-state-item-count">3</span> <span class="site-state-item-name">日志</span></a></div><div class="site-state-item site-state-tags"><span class="site-state-item-count">1</span> <span class="site-state-item-name">标签</span></div></nav><div class="links-of-author motion-element"><span class="links-of-author-item"><span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL2xpdGdo" title="Github &rarr; https://github.com/litgh"><i class="fa fa-fw fa-github"></i>Github</span> </span><span class="links-of-author-item"><span class="exturl" data-url="bWFpbHRvOnpoZW5nLmxpODdAZ21haWwuY29t" title="Email &rarr; mailto:zheng.li87@gmail.com"><i class="fa fa-fw fa-envelope"></i>Email</span></span></div></div></div><div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active"><div class="post-toc"><div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#引用计数法"><span class="nav-number">1.</span> <span class="nav-text">引用计数法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#根搜索算法"><span class="nav-number">2.</span> <span class="nav-text">根搜索算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#再谈引用"><span class="nav-number">2.1.</span> <span class="nav-text">再谈引用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#回收方法区"><span class="nav-number">3.</span> <span class="nav-text">回收方法区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#垃圾收集算法"><span class="nav-number">4.</span> <span class="nav-text">垃圾收集算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#标记-清除算法"><span class="nav-number">4.1.</span> <span class="nav-text">标记-清除算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#复制算法"><span class="nav-number">4.2.</span> <span class="nav-text">复制算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#标记-整理算法"><span class="nav-number">4.3.</span> <span class="nav-text">标记-整理算法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#垃圾收集器"><span class="nav-number">5.</span> <span class="nav-text">垃圾收集器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Serial收集器"><span class="nav-number">5.1.</span> <span class="nav-text">Serial收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ParNew收集器"><span class="nav-number">5.2.</span> <span class="nav-text">ParNew收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Parallel-Scavenge收集器"><span class="nav-number">5.3.</span> <span class="nav-text">Parallel Scavenge收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Serial-Old收集器"><span class="nav-number">5.4.</span> <span class="nav-text">Serial Old收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Paralel-Old收集器"><span class="nav-number">5.5.</span> <span class="nav-text">Paralel Old收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CMS收集器"><span class="nav-number">5.6.</span> <span class="nav-text">CMS收集器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#G1收集器"><span class="nav-number">5.7.</span> <span class="nav-text">G1收集器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存分配与回收策略"><span class="nav-number">6.</span> <span class="nav-text">内存分配与回收策略</span></a></li></ol></div></div></div></div></aside></div></main><footer id="footer" class="footer"><div class="footer-inner"><div class="copyright">&copy; 2008 – <span itemprop="copyrightYear">2019</span> <span class="with-love" id="animate"><i class="fa fa-"></i> </span><span class="author" itemprop="copyrightHolder">Lizheng</span> <span class="post-meta-divider">|</span> <span class="post-meta-item-icon"><i class="fa fa-area-chart"></i> </span><span title="站点总字数">8k</span> <span class="post-meta-divider">|</span> <span class="post-meta-item-icon"><i class="fa fa-coffee"></i> </span><span title="站点阅读时长">7 分钟</span></div></div></footer><div class="back-to-top"><i class="fa fa-arrow-up"></i></div></div><script>"[object Function]"!==Object.prototype.toString.call(window.Promise)&&(window.Promise=null)</script><script src="/lib/jquery/index.js?v=2.1.3"></script><script src="/lib/velocity/velocity.min.js?v=1.2.1"></script><script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script><script src="/js/src/utils.js?v=6.7.0"></script><script src="/js/src/motion.js?v=6.7.0"></script><script src="/js/src/schemes/muse.js?v=6.7.0"></script><script src="/js/src/scrollspy.js?v=6.7.0"></script><script src="/js/src/post-details.js?v=6.7.0"></script><script src="/js/src/bootstrap.js?v=6.7.0"></script><script>// Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });</script><script src="/js/src/exturl.js?v=6.7.0"></script></body></html>
